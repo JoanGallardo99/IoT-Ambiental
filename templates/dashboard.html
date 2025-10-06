@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard IoT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 16px; background-color: #121212; color: #e0e0e0}
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;}
+    @media (max-width: 850px) {.cards {grid-template-columns: 1fr;}}
+    .card { padding: 12px; border: 1px solid #2a2a2a; border-radius: 12px; background:linear-gradient(180deg, #1c1c1c, #171717); box-shadow:0 1px 6px rgba(0,0,0,.04); margin-bottom: 6px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;}
+    .card:hover {transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.7); border-color: #00bcd4;}
+    .card canvas { width: 100%; height: 300px; }
+    table { width: 100%; border-collapse: collapse; color: #ddd}
+    th, td { padding: 8px; border-bottom: 1px solid #333; text-align: left; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    input, button, select { background: #2b2b2b; color: #e0e0e0; border: 1px solid #444; border-radius: 6px; padding: 6px 10px; transition: background 0.2s, border 0.2s;}
+    button:hover {background: #3b3b3b; cursor: pointer; border-color: #00bcd4;}
+    input:hover {background: #3b3b3b; cursor: pointer; border-color: #00bcd4;}
+    select:hover {background: #3b3b3b; cursor: pointer; border-color: #00bcd4;}
+    .label-filtros {font-size: 1.2em; font-weight: 600; color: #fff; margin-right: 8 px;}
+    header.banner {background: linear-gradient(90deg, #0078ff, #00bcd4); color: white; text-align: center; padding: 20px 10px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); margin-bottom: 20px;}
+    header.banner h1 {margin: 0; font-size: 2em; text-shadow: 0 2px 6px rgba(0,0,0,0.6);}
+    header.banner .subtitle {margin: 5px 0 0; font-size: 1em; opacity: 0.9; text-shadow: 0 2px 6px rgba(0,0,0,0.6);}
+  </style>
+</head>
+
+<body>
+  <header class="banner">
+    <h1>Estación IoT</h1>
+    <p class="subtitle">Monitoreo en tiempo real</p>
+  </header>
+
+
+  <div class="cards">
+    <div class="card">
+      <h3>Temperatura (°C)</h3>
+      <p id="valorTemp" style="font-size: 1.5em; font-weight: bold; color: #ff4d4d;"> </p>
+      <canvas id="chartTemp"></canvas>
+    </div>
+    <div class="card">
+      <h3>Humedad (%)</h3>
+      <p id="valorHum" style="font-size: 1.5em; font-weight: bold; color: #4da6ff;"> </p>
+      <canvas id="chartHum"></canvas>
+    </div>
+    <div class="card">
+      <h3>Luz (u)</h3>
+      <p id="valorLuz" style="font-size: 1.5em; font-weight: bold; color: #ffd633;"> </p>
+      <canvas id="chartLuz"></canvas>
+    </div>
+    <div class="card">
+     <h3>Ruido (u)</h3>
+     <p id="valorRuido" style="font-size: 1.5em; font-weight: bold; color: #9b59b6;"> </p>
+     <canvas id="chartRuido"></canvas>
+    </div>
+  </div>
+
+    <div class="row">
+    <label class="label-filtros">Filtros:</label>
+  </div>
+
+  <div class="row">
+    <label>Desde <input type="datetime-local" id="from"></label>
+    <label>Hasta <input type="datetime-local" id="to"></label>
+    <label>Límite <input type="number" id="limit" value="200" min="10" step="10"></label>
+    <button id="btnLoad">Cargar</button>
+    <label><input type="checkbox" id="auto" checked> Auto-actualizar</label>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3>Últimas lecturas</h3>
+    <table id="tabla">
+      <thead><tr><th>Fecha</th><th>Temp</th><th>Hum</th><th>Luz</th><th>Ruido</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+let chartTemp, chartHum, chartLuz, chartRuido;
+function mkChart(ctx, label, dataLabels, dataValues, color) {
+  if (ctx.chartInstance) ctx.chartInstance.destroy();
+  const cfg = {
+    type: 'line',
+    data: {
+      labels: dataLabels,
+      datasets: [{
+        label,
+        data: dataValues,
+        fill: false,
+        borderWidth: 2,
+        borderColor: color,
+        backgroundColor: color + "33",
+        tension: 0.3,
+        pointRadius: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: { x: { ticks: { maxRotation: 90, autoSkip: true, font: {size:5} } } }
+    }
+  };
+  ctx.chartInstance = new Chart(ctx, cfg);
+  return ctx.chartInstance;
+}
+
+async function loadData() {
+  const limit = document.getElementById('limit').value;
+  const from = document.getElementById('from').value;
+  const to   = document.getElementById('to').value;
+
+  const params = new URLSearchParams();
+  if (from && to) {
+    // Convierte a formato ISO “YYYY-MM-DDTHH:mm:ss”
+    params.set('from', from);
+    params.set('to', to);
+  } else {
+    params.set('limit', limit || 200);
+  }
+
+  const res = await fetch('/api/series?' + params.toString());
+  const js = await res.json();
+
+  const labels = js.labels;
+  const temp   = js.series.temp;
+  const hum    = js.series.hum;
+  const luz    = js.series.luz;
+  const ruido = js.series.ruido;
+
+  // Gráficas
+  chartTemp  = mkChart(document.getElementById('chartTemp'),  '°C', labels, temp,  '#ff4d4d');
+  chartHum   = mkChart(document.getElementById('chartHum'),   '%',  labels, hum,   '#4da6ff');
+  chartLuz   = mkChart(document.getElementById('chartLuz'),   'u',  labels, luz,   '#ffd633');
+  chartRuido = mkChart(document.getElementById('chartRuido'), 'dB', labels, ruido, '#9b59b6');
+
+  document.getElementById('valorTemp').textContent  = temp.at(-1)?.toFixed(1) + " °C";
+  document.getElementById('valorHum').textContent   = hum.at(-1)?.toFixed(1) + " %";
+  document.getElementById('valorLuz').textContent   = luz.at(-1)?.toFixed(1) + " u";
+  document.getElementById('valorRuido').textContent = ruido.at(-1)?.toFixed(1) + " dB";
+
+
+
+  // Tabla
+  const tbody = document.querySelector('#tabla tbody');
+  tbody.innerHTML = '';
+  for (let i = labels.length - 1; i >= 0; i--) { // últimas primero
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${labels[i]}</td>
+    <td>${temp[i] ?? ''}</td>
+    <td>${hum[i] ?? ''}</td>
+    <td>${luz[i] ?? ''}</td>
+    <td>${ruido[i] ?? ''}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+document.getElementById('btnLoad').addEventListener('click', loadData);
+
+// Auto refresh cada 5s si está marcado
+setInterval(() => {
+  if (document.getElementById('auto').checked) loadData();
+}, 5000);
+
+// Primera carga
+loadData();
+</script>
+</body>
+</html>
