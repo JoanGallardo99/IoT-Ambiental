@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 import os
 from datetime import datetime
 from mysql.connector import pooling, Error
@@ -100,7 +100,7 @@ def ultimos():
 
 @app.route('/')
 def home():
-    return "Servidor IoT funcionando"
+    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 def dashboard():
