@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import os
-from datetime import datetime, timedelta
-import mysql.connector
+from datetime import datetime
 from mysql.connector import pooling, Error
 from dotenv import load_dotenv
 
