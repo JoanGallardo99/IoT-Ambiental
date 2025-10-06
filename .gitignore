@@ -1,2 +1,15 @@
+# Archivos de entorno y configuración
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+venv/
+.env/
+env/
+
 Fase1.py
