@@ -5,7 +5,7 @@ from mysql.connector import pooling, Error
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-fecha = datetime.now()
+# fecha = datetime.now()
 # fecha_form = fecha.strftime("%d/%m/%Y %H:%M:%S")
 load_dotenv()
 
@@ -68,7 +68,7 @@ def recibir_datos():
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO sensores (temp, hum, luz, ruido, fecha) VALUES (%s, %s, %s, %s, %s)",
-            (temp, hum, luz, ruido, fecha)
+            (temp, hum, luz, ruido, datetime.now())
         )
         # autocommit=True ya persiste los cambios
         return jsonify({"status": "ok", "received": {"temp": temp, "hum": hum, "luz": luz}})
@@ -164,6 +164,21 @@ def api_series():
         },
         "count": len(labels)
     })
+
+@app.route('/api/ultimo', methods=['GET'])
+def ultimo():
+    try:
+        conn = cnxpool.get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT temp, hum, luz, ruido, fecha FROM sensores ORDER BY id DESC LIMIT 1")
+        row = cur.fetchone()
+        return jsonify(row or {})
+    except Error as e:
+        return jsonify({"status": "error", "msg": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
             
 
 if __name__ == "__main__":

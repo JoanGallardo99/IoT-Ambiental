@@ -123,6 +123,26 @@ async function loadData() {
     params.set('limit', limit || 200);
   }
 
+async function actualizarInstantaneo() {
+  try {
+    const res = await fetch('/api/ultimo');
+    const data = await res.json();
+    if (!data || !data.temp) return;
+
+    document.getElementById('valorTemp').textContent  = data.temp.toFixed(1) + " °C";
+    document.getElementById('valorHum').textContent   = data.hum.toFixed(1) + " %";
+    document.getElementById('valorLuz').textContent   = data.luz.toFixed(1) + " u";
+    document.getElementById('valorRuido').textContent = data.ruido.toFixed(1) + " dB";
+  } catch (err) {
+    console.error("Error obteniendo valor instantáneo:", err);
+  }
+}
+
+// Actualiza cada 2 segundos sin recrear gráficos
+setInterval(actualizarInstantaneo, 4000);
+actualizarInstantaneo();
+
+
   const res = await fetch('/api/series?' + params.toString());
   const js = await res.json();
 
