@@ -184,4 +184,4 @@ def ultimo():
 if __name__ == "__main__":
     print(f"Conectando a MySQL {DB_HOST}:{DB_PORT} / DB: {DB_NAME}")
     init_db()   # Ejecuta aquí la creación de la tabla
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

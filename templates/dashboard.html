@@ -51,7 +51,7 @@
       <canvas id="chartLuz"></canvas>
     </div>
     <div class="card">
-     <h3>Ruido (u)</h3>
+     <h3>Ruido (dB)</h3>
      <p id="valorRuido" style="font-size: 1.5em; font-weight: bold; color: #9b59b6;"> </p>
      <canvas id="chartRuido"></canvas>
     </div>
@@ -131,7 +131,7 @@ async function actualizarInstantaneo() {
 
     document.getElementById('valorTemp').textContent  = data.temp.toFixed(1) + " °C";
     document.getElementById('valorHum').textContent   = data.hum.toFixed(1) + " %";
-    document.getElementById('valorLuz').textContent   = data.luz.toFixed(1) + " u";
+    document.getElementById('valorLuz').textContent   = data.luz.toFixed(1) + " %";
     document.getElementById('valorRuido').textContent = data.ruido.toFixed(1) + " dB";
   } catch (err) {
     console.error("Error obteniendo valor instantáneo:", err);
@@ -155,12 +155,12 @@ actualizarInstantaneo();
   // Gráficas
   chartTemp  = mkChart(document.getElementById('chartTemp'),  '°C', labels, temp,  '#ff4d4d');
   chartHum   = mkChart(document.getElementById('chartHum'),   '%',  labels, hum,   '#4da6ff');
-  chartLuz   = mkChart(document.getElementById('chartLuz'),   'u',  labels, luz,   '#ffd633');
+  chartLuz   = mkChart(document.getElementById('chartLuz'),   '%',  labels, luz,   '#ffd633');
   chartRuido = mkChart(document.getElementById('chartRuido'), 'dB', labels, ruido, '#9b59b6');
 
   document.getElementById('valorTemp').textContent  = temp.at(-1)?.toFixed(1) + " °C";
   document.getElementById('valorHum').textContent   = hum.at(-1)?.toFixed(1) + " %";
-  document.getElementById('valorLuz').textContent   = luz.at(-1)?.toFixed(1) + " u";
+  document.getElementById('valorLuz').textContent   = luz.at(-1)?.toFixed(1) + " %";
   document.getElementById('valorRuido').textContent = ruido.at(-1)?.toFixed(1) + " dB";
 
 
